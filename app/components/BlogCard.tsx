@@ -11,6 +11,7 @@ const BlogCard = ({ post }: { post: PostMeta }) => {
       <p className="text-sm text-gray-400 mb-2">
         {new Date(post.date).toLocaleDateString()}
       </p>
+      {post.image && (<img src={post.image} alt={post.title} className="h-48 w-full object-cover rounded mb-4"></img>)}
       <p className="text-gray-300 mb-4">{post.excerpt}</p>
       <Link
         to={`/blog/${post.slug}`}
