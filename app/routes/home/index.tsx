@@ -1,8 +1,13 @@
 import FeaturedProjects from "~/components/FeaturedProjects";
 import type { Route } from "./+types/index";
-import type { Project, StrapiProject, StrapiResponse } from "~/types";
+import type {
+  Project,
+  StrapiPost,
+  StrapiProject,
+  StrapiResponse,
+} from "~/types";
 import AboutPreview from "~/components/AboutPreview";
-import type { PostMeta } from "~/types";
+import type { Post } from "~/types";
 import LatestPosts from "~/components/LatestPosts";
 
 export function meta({}: Route.MetaArgs) {
@@ -14,13 +19,12 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({
   request,
-}: Route.LoaderArgs): Promise<{ projects: Project[]; posts: PostMeta[] }> {
-  const url = new URL(request.url);
+}: Route.LoaderArgs): Promise<{ projects: Project[]; posts: Post[] }> {
   const [projectRes, postRes] = await Promise.all([
     fetch(
       `${import.meta.env.VITE_API_URL}/projects?filters[featured][$eq]=true&populate=*`,
     ),
-    fetch(new URL("/posts-meta.json", url)),
+    fetch(`${import.meta.env.VITE_API_URL}/posts?sort[0]=date:desc&populate=*`),
   ]);
 
   if (!projectRes.ok || !postRes.ok) {
@@ -29,7 +33,7 @@ export async function loader({
 
   const projectsJson: StrapiResponse<StrapiProject> = await projectRes.json();
 
-  const postsJson = await postRes.json();
+  const postsJson: StrapiResponse<StrapiPost> = await postRes.json();
 
   const projects = projectsJson.data.map((item) => ({
     id: item.id,
@@ -45,7 +49,19 @@ export async function loader({
       : "/images/no-image.png",
   }));
 
-  return { projects, posts: postsJson };
+  const posts = postsJson.data.map((item) => ({
+    id: item.id,
+    title: item.title,
+    body: item.body,
+    slug: item.slug,
+    date: item.date,
+    excerpt: item.excerpt,
+    image: item.image?.url
+      ? `${import.meta.env.VITE_STRAPI_URL}${item.image.url}`
+      : "/images/no-image.png",
+  }));
+
+  return { projects, posts };
 }
 
 const Home = ({ loaderData }: Route.ComponentProps) => {
@@ -53,7 +69,7 @@ const Home = ({ loaderData }: Route.ComponentProps) => {
 
   return (
     <>
-      <FeaturedProjects projects={projects} count={2} />
+      <FeaturedProjects projects={projects} />
       <AboutPreview />
       <LatestPosts posts={posts} />
     </>
